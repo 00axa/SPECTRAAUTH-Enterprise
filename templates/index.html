@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpectraAuth | Enterprise SOC Threat & Credential Auditor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            background-color: #070a12; 
+            color: #94a3b8; 
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .dashboard-container {
+            background-color: #0b0f17;
+            border: 1px solid #1f2937;
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+        }
+        .segment {
+            height: 6px;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+            background-color: #1f2937;
+        }
+        .segment.active-red { background-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+        .segment.active-orange { background-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+        .segment.active-blue { background-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+        .segment.active-green { background-color: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+        .policy-item { transition: all 0.2s ease; }
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active { background-color: rgba(16, 185, 129, 0.15); color: #10b981; border-color: #10b981; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-6">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full max-w-7xl mx-auto flex items-center justify-between border-b border-gray-800/80 pb-4 mb-4">
+        <div class="flex items-center gap-3">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <h1 class="text-xs md:text-sm font-bold text-gray-200 tracking-widest uppercase">SPECTRAAUTH // SOC TERMINAL v3.5</h1>
+        </div>
+        <div class="text-xs text-gray-400 flex items-center gap-4">
+            <span class="hidden sm:inline text-gray-400">STATUS: <strong class="text-emerald-400 font-semibold">ACTIVE MONITORING</strong></span>
+            <span class="bg-gray-900 border border-gray-800 px-3 py-1 rounded text-gray-300 font-mono text-[11px]">NIST SP 800-63B</span>
+        </div>
+    </header>
+
+    <!-- Main Full-Screen Dashboard Grid -->
+    <main class="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 my-auto">
+        
+        <!-- Left Panel: Input, Strength Meter & Full 12-Policy Matrix (Cols 1-7) -->
+        <div class="lg:col-span-7 dashboard-container rounded-2xl p-6 flex flex-col justify-between space-y-5">
+            <div>
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-white tracking-tight">Credential Threat Auditor</h2>
+                    <p class="text-xs text-gray-400 mt-0.5">Real-time cryptographic entropy & 12-point compliance engine.</p>
+                </div>
+
+                <!-- Password Input & Action Buttons -->
+                <div class="relative mb-4">
+                    <input type="password" id="passwordInput" placeholder="Enter target credential for audit..." 
+                        class="w-full bg-[#070a12] border border-gray-800 rounded-xl px-4 py-3 text-gray-100 placeholder-gray-600 focus:outline-none focus:border-emerald-500 font-mono text-sm tracking-wider">
+                    
+                    <div class="absolute right-3 top-2.5 flex items-center gap-2">
+                        <button onclick="generatePassphrase()" title="Generate Diceware Passphrase" class="text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-950/50 px-2.5 py-1.5 rounded-lg border border-emerald-900/60 transition-colors">
+                            PASSPHRASE
+                        </button>
+                        <button onclick="toggleVisibility()" class="text-xs text-gray-300 hover:text-white bg-gray-800/90 px-2.5 py-1.5 rounded-lg border border-gray-700 transition-colors">
+                            VIEW
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password Strength Bar -->
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-gray-300 uppercase tracking-wider">Entropy Strength Meter</span>
+                        <span id="strengthLabel" class="text-xs font-bold text-gray-400">Awaiting Input...</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-2">
+                        <div id="seg1" class="segment"></div>
+                        <div id="seg2" class="segment"></div>
+                        <div id="seg3" class="segment"></div>
+                        <div id="seg4" class="segment"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full 12-Policy Compliance Matrix (2-Column Grid) -->
+            <div class="pt-4 border-t border-gray-800/80">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">12-Point Enterprise Compliance Matrix</span>
+                    <span id="policyCount" class="text-[11px] font-mono font-bold text-emerald-400">0 / 12 PASSED</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-len_12">
+                        <span class="text-gray-400 text-[11px]">1. Min 12 Characters</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-len_16">
+                        <span class="text-gray-400 text-[11px]">2. Optimal 16+ Chars</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-upper">
+                        <span class="text-gray-400 text-[11px]">3. Uppercase [A-Z]</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-lower">
+                        <span class="text-gray-400 text-[11px]">4. Lowercase [a-z]</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-numeric">
+                        <span class="text-gray-400 text-[11px]">5. Numeric Digits [0-9]</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-symbol">
+                        <span class="text-gray-400 text-[11px]">6. Special Symbols [!@#$]</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-no_repeating">
+                        <span class="text-gray-400 text-[11px]">7. No Triple Repeats (aaa)</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-no_sequential">
+                        <span class="text-gray-400 text-[11px]">8. No Keyboard Walks</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-mixed_case">
+                        <span class="text-gray-400 text-[11px]">9. Balanced Case Mix</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-multi_symbol">
+                        <span class="text-gray-400 text-[11px]">10. Multiple Symbols (2+)</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-entropy_check">
+                        <span class="text-gray-400 text-[11px]">11. High Entropy (60+ bits)</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                    <div class="policy-item flex items-center justify-between bg-[#070a12] px-3 py-2 rounded-lg border border-gray-800/60" id="pol-not_breached">
+                        <span class="text-gray-400 text-[11px]">12. Zero Breach Exposures</span>
+                        <span class="icon text-gray-600 font-bold">•</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Tabs for Telemetry, KDF Inspector & Export (Cols 8-12) -->
+        <div class="lg:col-span-5 dashboard-container rounded-2xl p-6 flex flex-col justify-between space-y-6">
+            <div>
+                <!-- Tab Headers -->
+                <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-5">
+                    <div class="flex gap-2">
+                        <button onclick="switchTab('telemetry')" id="btn-telemetry" class="tab-btn active text-[10px] font-mono px-3 py-1.5 rounded-lg border border-gray-800 bg-gray-900 text-gray-300">TELEMETRY</button>
+                        <button onclick="switchTab('kdf')" id="btn-kdf" class="tab-btn text-[10px] font-mono px-3 py-1.5 rounded-lg border border-gray-800 bg-gray-900 text-gray-400">KDF INSPECTOR</button>
+                    </div>
+                    <button onclick="exportAuditReport()" title="Download JSON Report" class="text-[10px] font-mono text-emerald-400 bg-emerald-950/50 hover:bg-emerald-900/40 px-2.5 py-1.5 rounded-lg border border-emerald-900/60 transition-colors">EXPORT JSON</button>
+                </div>
+
+                <!-- Tab Content 1: Telemetry & Threat Analysis -->
+                <div id="tab-telemetry" class="space-y-4">
+                    <div class="bg-[#070a12] p-4 rounded-xl border border-gray-800">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest block mb-1">Shannon Information Entropy</span>
+                        <span id="valEntropy" class="text-white font-bold text-lg font-mono">-- bits</span>
+                    </div>
+                    <div class="bg-[#070a12] p-4 rounded-xl border border-gray-800">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest block mb-1">Estimated GPU Brute-Force Crack Time</span>
+                        <span id="valCrack" class="text-emerald-400 font-bold text-sm font-mono">--</span>
+                    </div>
+                </div>
+
+                <!-- Tab Content 2: KDF Inspector (Argon2id / PBKDF2) -->
+                <div id="tab-kdf" class="space-y-3 hidden font-mono text-xs">
+                    <div class="bg-[#070a12] p-3.5 rounded-xl border border-gray-800 space-y-2">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest block">Cryptographic Salt (SHA-256 Prefix)</span>
+                        <span id="kdfSalt" class="text-emerald-400 font-bold text-xs break-all">--</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-[#070a12] p-3 rounded-xl border border-gray-800">
+                            <span class="text-[9px] text-gray-500 uppercase block mb-1">KDF Function</span>
+                            <span class="text-gray-200 font-bold text-xs">Argon2id</span>
+                        </div>
+                        <div class="bg-[#070a12] p-3 rounded-xl border border-gray-800">
+                            <span class="text-[9px] text-gray-500 uppercase block mb-1">Iterations</span>
+                            <span class="text-gray-200 font-bold text-xs">600,000</span>
+                        </div>
+                    </div>
+                    <div class="bg-emerald-950/20 border border-emerald-900/40 p-3 rounded-xl text-[11px] text-emerald-400">
+                        ✓ Memory-hard hashing active. Stretches offline GPU dictionary attacks exponentially.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breach Intelligence Status Box -->
+            <div class="space-y-3 pt-4 border-t border-gray-800">
+                <span class="text-[10px] text-gray-500 uppercase tracking-widest font-semibold block">Dark-Web Breach Intelligence</span>
+                <div id="breachAlert" class="p-4 rounded-xl border bg-gray-900/60 border-gray-800 text-gray-400 text-xs font-mono">
+                    Awaiting credential entry for API query...
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Metadata -->
+    <footer class="w-full max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between border-t border-gray-800/80 pt-4 text-xs text-gray-500 gap-2">
+        <p>SpectraAuth Enterprise Core // Secure Client-Server Verification</p>
+        <p class="font-mono text-emerald-500/80">SECURE HASHING PROTOCOL ACTIVE</p>
+    </footer>
+
+    <!-- Frontend Logic Script -->
+    <script>
+        const input = document.getElementById('passwordInput');
+        const strengthLabel = document.getElementById('strengthLabel');
+        const valEntropy = document.getElementById('valEntropy');
+        const valCrack = document.getElementById('valCrack');
+        const breachAlert = document.getElementById('breachAlert');
+        const policyCount = document.getElementById('policyCount');
+        const kdfSalt = document.getElementById('kdfSalt');
+
+        let latestAuditData = null;
+
+        const segs = [
+            document.getElementById('seg1'),
+            document.getElementById('seg2'),
+            document.getElementById('seg3'),
+            document.getElementById('seg4')
+        ];
+
+        const policyKeys = [
+            'len_12', 'len_16', 'upper', 'lower', 'numeric', 'symbol',
+            'no_repeating', 'no_sequential', 'mixed_case', 'multi_symbol',
+            'entropy_check', 'not_breached'
+        ];
+
+        function toggleVisibility() {
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('tab-telemetry').classList.add('hidden');
+            document.getElementById('tab-kdf').classList.add('hidden');
+            document.getElementById('btn-telemetry').classList.remove('active', 'text-emerald-400');
+            document.getElementById('btn-kdf').classList.remove('active', 'text-emerald-400');
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabName}`).classList.add('active', 'text-emerald-400');
+        }
+
+        function generatePassphrase() {
+            const words = ["cyber", "quantum", "matrix", "sentinel", "shield", "nexus", "entropy", "vortex", "cipher", "beacon", "titan", "vector"];
+            let phrase = [];
+            for (let i = 0; i < 4; i++) {
+                phrase.push(words[Math.floor(Math.random() * words.length)]);
+            }
+            input.value = phrase.join("-") + "!" + Math.floor(Math.random() * 90 + 10);
+            input.dispatchEvent(new Event('input'));
+        }
+
+        function exportAuditReport() {
+            if (!latestAuditData) {
+                alert("Please audit a credential first before exporting the report.");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(latestAuditData, null, 4));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "SpectraAuth_Audit_Report.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function resetSegments() {
+            segs.forEach(s => s.className = 'segment');
+        }
+
+        input.addEventListener('input', async () => {
+            const pwd = input.value;
+
+            if (!pwd) {
+                resetSegments();
+                strengthLabel.innerText = "Awaiting Input...";
+                strengthLabel.style.color = "#94a3b8";
+                valEntropy.innerText = "-- bits";
+                valCrack.innerText = "--";
+                kdfSalt.innerText = "--";
+                policyCount.innerText = "0 / 12 PASSED";
+                policyKeys.forEach(k => {
+                    const el = document.getElementById(`pol-${k}`);
+                    el.style.borderColor = "#1f2937";
+                    el.style.backgroundColor = "#070a12";
+                    el.querySelector('.icon').innerText = "•";
+                    el.querySelector('.icon').style.color = "#4b5563";
+                });
+                breachAlert.className = "p-4 rounded-xl border bg-gray-900/60 border-gray-800 text-gray-400 text-xs font-mono";
+                breachAlert.innerHTML = "Awaiting credential entry for API query...";
+                latestAuditData = null;
+                return;
+            }
+
+            const response = await fetch('/audit', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: pwd})
+            });
+            const data = await response.json();
+            latestAuditData = data;
+
+            valEntropy.innerText = `${data.entropy} bits`;
+            valCrack.innerText = data.crackTime;
+            kdfSalt.innerText = data.kdf.salt;
+            policyCount.innerText = `${data.passedCount} / 12 PASSED`;
+
+            policyKeys.forEach(k => {
+                const el = document.getElementById(`pol-${k}`);
+                const passed = data.policies[k];
+                const icon = el.querySelector('.icon');
+                if (passed) {
+                    el.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                    el.style.backgroundColor = 'rgba(16, 185, 129, 0.08)';
+                    icon.innerText = "✓";
+                    icon.style.color = "#10b981";
+                } else {
+                    el.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                    el.style.backgroundColor = '#070a12';
+                    icon.innerText = "•";
+                    icon.style.color = "#ef4444";
+                }
+            });
+
+            resetSegments();
+            let activeCount = 0;
+            let activeClass = 'active-red';
+            let labelText = 'Very Weak';
+
+            if (data.entropy > 20) { activeCount = 1; activeClass = 'active-red'; labelText = 'Weak'; }
+            if (data.entropy > 45) { activeCount = 2; activeClass = 'active-orange'; labelText = 'Moderate'; }
+            if (data.entropy > 70) { activeCount = 3; activeClass = 'active-blue'; labelText = 'Strong'; }
+            if (data.entropy > 90 && data.passedCount >= 10) { activeCount = 4; activeClass = 'active-green'; labelText = 'Enterprise Grade'; }
+
+            for (let i = 0; i < activeCount; i++) {
+                segs[i].classList.add(activeClass);
+            }
+            strengthLabel.innerText = labelText;
+            strengthLabel.style.color = activeClass === 'active-green' ? '#10b981' : (activeClass === 'active-blue' ? '#3b82f6' : (activeClass === 'active-orange' ? '#f59e0b' : '#ef4444'));
+
+            if (data.breachCount > 0) {
+                breachAlert.className = "p-4 rounded-xl border bg-red-950/30 border-red-900/60 text-red-400 text-xs font-mono";
+                breachAlert.innerHTML = `⚠ CRITICAL ALERT: Found in ${data.breachCount} public data breaches!`;
+            } else {
+                breachAlert.className = "p-4 rounded-xl border bg-emerald-950/30 border-emerald-900/60 text-emerald-400 text-xs font-mono";
+                breachAlert.innerHTML = `✓ Clean status (Zero public exposures via k-anonymity).`;
+            }
+        });
+    </script>
+</body>
+</html>
